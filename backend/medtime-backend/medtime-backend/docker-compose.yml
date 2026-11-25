@@ -1,0 +1,23 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: medtime
+      POSTGRES_PASSWORD: medtime
+      POSTGRES_DB: medtime
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medtime"]
+      interval: 5s
+      retries: 10
+  api:
+    build: .
+    env_file: .env.example
+    environment:
+      DATABASE_URL: postgresql+psycopg2://medtime:medtime@db:5432/medtime
+      RUN_SCHEDULER: "true"   # for several API replicas, set false and run one `python -m app.worker` container
+    ports: ["8000:8000"]
+    depends_on:
+      db: {condition: service_healthy}
+volumes:
+  pgdata:
