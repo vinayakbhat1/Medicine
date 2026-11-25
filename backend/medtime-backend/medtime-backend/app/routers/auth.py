@@ -1,59 +1,36 @@
-import hmac
-import secrets
-from datetime import timedelta
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..database import get_db
-from ..models import (DoseInstance, Family, MemberProfile, Medicine, Membership, OtpCode, Schedule, User, now)
-from ..schemas import OtpRequest, OtpVerify
-from ..security import create_token, current_user, hash_secret, normalise_identifier
+from ..models import DoseInstance, Family, MemberProfile, Medicine, Membership, User
+from ..security import create_token, current_user
 from ..services import audit, cancel_future_doses
 
 router = APIRouter(tags=["auth"])
 
 
-@router.post("/auth/otp/request")
-def request_otp(body: OtpRequest, db: Session = Depends(get_db)):
-    ident = normalise_identifier(body.identifier)
-    recent = db.scalar(select(func.count()).select_from(OtpCode).where(
-        OtpCode.identifier == ident, OtpCode.created_at > now() - timedelta(minutes=15)))
-    if recent >= settings.otp_max_per_window:
-        raise HTTPException(429, "Too many OTP requests. Try again later.")
-    code = f"{secrets.randbelow(10**6):06d}"
-    db.add(OtpCode(identifier=ident, code_hash=hash_secret(f"{ident}:{code}"),
-                   expires_at=now() + timedelta(seconds=settings.otp_ttl_seconds)))
-    db.commit()
-    # TODO: deliver `code` through your SMS / email provider here.
-    out = {"detail": "OTP sent", "expires_in": settings.otp_ttl_seconds}
-    if settings.env == "dev":
-        out["dev_code"] = code  # convenience for local development only
-    return out
-
-
-@router.post("/auth/otp/verify")
-def verify_otp(body: OtpVerify, db: Session = Depends(get_db)):
-    ident = normalise_identifier(body.identifier)
-    otp = db.scalar(select(OtpCode).where(OtpCode.identifier == ident, OtpCode.used.is_(False))
-                    .order_by(OtpCode.created_at.desc()))
-    if not otp or otp.expires_at < now() or otp.attempts >= 5:
-        raise HTTPException(400, "Invalid or expired code")
-    otp.attempts += 1
-    if not hmac.compare_digest(otp.code_hash, hash_secret(f"{ident}:{body.code}")):
-        db.commit()
-        raise HTTPException(400, "Invalid or expired code")
-    otp.used = True
-    col = User.email if "@" in ident else User.phone
-    user = db.scalar(select(User).where(col == ident))
+@router.post("/auth/demo")
+def demo_login(db: Session = Depends(get_db)):
+    """
+    Demo-only login. No SMS/email OTP is sent.
+    This uses one shared demo account, so never store real personal or medical
+    information in this account.
+    """
+    demo_email = "demo@medtime.local"
+    user = db.scalar(select(User).where(User.email == demo_email))
     if not user:
-        user = User(name=(body.name or "User").strip() or "User")
-        setattr(user, "email" if "@" in ident else "phone", ident)
+        user = User(name="Demo User", email=demo_email)
         db.add(user)
-    db.commit()
-    return {"access_token": create_token(user.id), "token_type": "bearer", "user": {"id": user.id, "name": user.name}}
+        db.commit()
+        db.refresh(user)
+
+    return {
+        "access_token": create_token(user.id),
+        "token_type": "bearer",
+        "user": {"id": user.id, "name": user.name},
+    }
 
 
 @router.get("/me")

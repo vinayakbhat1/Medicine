@@ -89,58 +89,62 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 }
 
 /* ───────────────────────── Auth ───────────────────────── */
-function Auth({ onDone }: { onDone: (token: string) => void }) {
-  const [step, setStep] = useState<"id" | "code">("id");
-  const [ident, setIdent] = useState("");
-  const [name, setName] = useState("");
-  const [code, setCode] = useState("");
-  const [hint, setHint] = useState("");
-  const [err, setErr] = useState("");
-  const [busy, setBusy] = useState(false);
 
-  async function send(e: FormEvent) {
-    e.preventDefault(); setBusy(true); setErr("");
+function Auth({ onDone }: { onDone: (token: string) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function demoLogin() {
+    setBusy(true);
+    setErr("");
     try {
-      const r = await api<{ dev_code?: string }>("/auth/otp/request", { body: { identifier: ident } });
-      if (r.dev_code) { setHint(r.dev_code); setCode(r.dev_code); }
-      setStep("code");
-    } catch (x) { setErr(errMsg(x)); } finally { setBusy(false); }
-  }
-  async function verify(e: FormEvent) {
-    e.preventDefault(); setBusy(true); setErr("");
-    try {
-      const r = await api<{ access_token: string }>("/auth/otp/verify", { body: { identifier: ident, code, name: name.trim() || undefined } });
+      const r = await api<{ access_token: string }>("/auth/demo", {
+        method: "POST",
+        body: {},
+      });
       onDone(r.access_token);
-    } catch (x) { setErr(errMsg(x)); } finally { setBusy(false); }
+    } catch (e) {
+      setErr(errMsg(e));
+    } finally {
+      setBusy(false);
+    }
   }
+
   return (
     <div className="hero">
       <div>
         <span className="chip due">Family health &amp; medicine manager</span>
         <h1>A simpler way for families to care together.</h1>
-        <p className="mut">Organise medicines, reminders, dose confirmations and stock for everyone you look after – in one shared space.</p>
-        <p className="sm mut">✔ One-tap Taken / Skipped &nbsp; ✔ Missed-dose visibility &nbsp; ✔ Low-stock alerts</p>
+        <p className="mut">
+          Organise medicines, reminders, dose confirmations and stock
+          for everyone you look after – in one shared space.
+        </p>
+        <p className="sm mut">
+          ✔ One-tap Taken / Skipped &nbsp;
+          ✔ Missed-dose visibility &nbsp;
+          ✔ Low-stock alerts
+        </p>
       </div>
+
       <div className="card">
-        <h2>{step === "id" ? "Sign in" : "Enter your code"}</h2>
-        {step === "id" ? (
-          <form onSubmit={send}>
-            <Field label="Mobile number or email"><input value={ident} onChange={(e) => setIdent(e.target.value)} required minLength={5} placeholder="+91 98765 43210" autoComplete="username" /></Field>
-            <button className="b p" disabled={busy}>{busy ? "Sending…" : "Send code"}</button>
-          </form>
-        ) : (
-          <form onSubmit={verify}>
-            <Field label="6-digit code"><input value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} required minLength={6} maxLength={6} inputMode="numeric" autoComplete="one-time-code" /></Field>
-            <Field label="Your name (for new accounts)"><input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder="e.g. Priya" /></Field>
-            {hint && <p className="sm mut">Dev mode: code {hint} was filled in for you.</p>}
-            <div className="row"><button className="b p" disabled={busy}>{busy ? "Checking…" : "Verify & continue"}</button><button type="button" className="b" onClick={() => setStep("id")}>Back</button></div>
-          </form>
-        )}
+        <h2>Welcome to MedTime</h2>
+        <p className="mut">Continue using the demo account.</p>
+        <button
+          className="b p"
+          onClick={demoLogin}
+          disabled={busy}
+        >
+          {busy ? "Signing in…" : "Continue to MedTime"}
+        </button>
         {err && <p className="err" role="alert">{err}</p>}
+        <p className="sm mut">
+          Demo access. Do not enter real personal or medical information.
+        </p>
       </div>
     </div>
   );
 }
+
 
 /* ───────────────────────── Family setup ───────────────────────── */
 function FamilySetup({ onDone, toast, onLogout }: { onDone: () => Promise<void>; toast: Toaster; onLogout: () => void }) {
