@@ -16,6 +16,12 @@
       "destination": {
         "service": "medtime-backend"
       }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "medtime"
+      }
     }
   ]
 }
