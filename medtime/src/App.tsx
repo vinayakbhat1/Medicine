@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { CSSProperties, FormEvent, ReactNode } from "react";
 
 /* ───────────────────────── API layer ───────────────────────── */
-const API_ROOT = "/api";
+const API_ROOT = "https://medicine-7e8p.onrender.com/api";
 const BASE = `${API_ROOT}/v1`;
 const TOKEN_KEY = "medtime_token";
 const store = {
