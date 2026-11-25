@@ -1,0 +1,21 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "medtime-backend": {
+      "root": "backend/medtime-backend/medtime-backend",
+      "framework": "fastapi"
+    },
+    "medtime": {
+      "root": "medtime",
+      "framework": "vite"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "medtime-backend"
+      }
+    }
+  ]
+}
