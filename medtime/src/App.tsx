@@ -6,8 +6,8 @@ import { useCallback, useEffect, useState } from "react";
 import type { CSSProperties, FormEvent, ReactNode } from "react";
 
 /* ───────────────────────── API layer ───────────────────────── */
-const API_ROOT = (((import.meta as any).env?.VITE_API_URL as string | undefined) || "http://localhost:8000").replace(/\/$/, "");
-const BASE = `${API_ROOT}/api/v1`;
+const API_ROOT = "/api";
+const BASE = `${API_ROOT}/v1`;
 const TOKEN_KEY = "medtime_token";
 const store = {
   get: (): string | null => { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } },

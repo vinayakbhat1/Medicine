@@ -1,5 +1,4 @@
-﻿{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
+{
   "services": {
     "medtime-backend": {
       "root": "backend/medtime-backend/medtime-backend",
@@ -11,6 +10,12 @@
     }
   },
   "rewrites": [
+    {
+      "source": "/health",
+      "destination": {
+        "service": "medtime-backend"
+      }
+    },
     {
       "source": "/api/(.*)",
       "destination": {
